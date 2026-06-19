@@ -1,0 +1,68 @@
+name: Build Desktop Apps
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} desktop app
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact-name: MPC-Converter-macOS
+            executable-name: MPC-Converter
+            add-data-separator: ':'
+          - os: windows-latest
+            artifact-name: MPC-Converter-Windows
+            executable-name: MPC-Converter.exe
+            add-data-separator: ';'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build frontend
+        run: npm run build:web
+
+      - name: Install Python build dependencies
+        run: python -m pip install --upgrade pip pyinstaller
+
+      - name: Run Python tests
+        run: python -m unittest discover -s ni_mpc_converter/tests -p "test_*.py"
+
+      - name: Build desktop executable
+        shell: bash
+        run: |
+          python -m PyInstaller \
+            --name MPC-Converter \
+            --onefile \
+            --clean \
+            --add-data "ni_mpc_converter/web${{ matrix.add-data-separator }}ni_mpc_converter/web" \
+            --hidden-import ni_mpc_converter.app.desktop \
+            ni_mpc_converter/app/desktop.py
+
+      - name: Upload desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: dist/${{ matrix.executable-name }}
+          if-no-files-found: error

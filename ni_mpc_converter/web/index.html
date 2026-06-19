@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NI to MPC Batch Converter</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script type="module" src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">MPC XTD Batch Processor</p>
+        <h1>Kit Conversion Dashboard</h1>
+      </div>
+      <div class="system-strip">
+        <span>Pad Limit <strong>32</strong></span>
+        <span>Output <strong>XTD</strong></span>
+        <span id="server-state">Ready</span>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <form id="convert-form" class="setup-column">
+        <section class="panel">
+          <div class="panel-head">
+            <span class="step">01</span>
+            <div>
+              <h2>Source Queue</h2>
+              <p>Batch NI expansions, raw WAV packs, or both.</p>
+            </div>
+          </div>
+          <div class="source-grid">
+            <label>NI roots
+              <textarea name="niRoots" spellcheck="false" placeholder="/Volumes/RAID1_bak/Shared/Boss Of The Trap Library"></textarea>
+              <span>Exact Maschine pack folders with `Groups/*.mxgrp` or `Groups/Kits/*.mxgrp`.</span>
+            </label>
+            <label>NI parents
+              <textarea name="niParents" spellcheck="false" placeholder="/Volumes/RAID1_bak/Shared"></textarea>
+              <span>Scans direct child folders for valid NI packs.</span>
+            </label>
+            <label>Sample roots
+              <textarea name="sampleRoots" spellcheck="false" placeholder="/Volumes/RAID1_bak/Shared/Jonlick sounds"></textarea>
+              <span>Exact folders containing WAV sample packs.</span>
+            </label>
+            <label>Sample parents
+              <textarea name="sampleParents" spellcheck="false" placeholder="/Volumes/RAID1_bak/Shared"></textarea>
+              <span>Scans direct child folders that contain WAV files.</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <span class="step">02</span>
+            <div>
+              <h2>Processing Rules</h2>
+              <p>Choose how custom sample packs are grouped and mapped.</p>
+            </div>
+          </div>
+          <div class="control-grid">
+            <label>Custom grouping
+              <select name="samplesGrouping">
+                <option value="per-folder">Per folder</option>
+                <option value="single-kit">Single mixed kit</option>
+              </select>
+            </label>
+            <label>Pad profile
+              <select name="padProfile">
+                <option value="default">Default</option>
+                <option value="darkchild">Darkchild</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+          </div>
+          <div class="custom-map" id="custom-map">
+            <div class="role-tabs" aria-label="Custom pad role selector">
+              <button class="role-tab is-active" type="button" data-role="kick">Kick</button>
+              <button class="role-tab" type="button" data-role="snare">Snare</button>
+              <button class="role-tab" type="button" data-role="perc">Perc</button>
+              <button class="role-tab" type="button" data-role="clap">Clap</button>
+              <button class="role-tab clear" type="button" data-role="clear">Clear</button>
+            </div>
+            <div class="pad-selector" id="pad-selector" aria-label="Custom 32-pad selector"></div>
+            <div class="pad-selection-readout" id="pad-selection-readout"></div>
+            <input name="customKickPads" type="hidden" value="1,5,9">
+            <input name="customSnarePads" type="hidden" value="2,6,10">
+            <input name="customPercPads" type="hidden" value="3,4,7,8">
+            <input name="customClapPads" type="hidden" value="13,14,15,16">
+          </div>
+          <div class="control-grid">
+            <label>Kit filter
+              <input name="kitFilters" spellcheck="false" placeholder="Trap, Darkchild, All Drums">
+            </label>
+            <label>Limit
+              <input name="limit" type="number" min="1" step="1" placeholder="Optional">
+            </label>
+          </div>
+          <div class="rule-note" id="profile-note">
+            <strong>Darkchild profile:</strong> kicks on pads 01/05/09, snares on 02/06/10, percussion on 03/04/07/08, then deterministic fill.
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <span class="step">03</span>
+            <div>
+              <h2>Destination</h2>
+              <p>Set the output folder and MPC template source.</p>
+            </div>
+          </div>
+          <div class="control-grid">
+            <label class="span-2">Output root
+              <input name="outputRoot" value="/Volumes/Data/MPC_Converter/web_converted_xtd" spellcheck="false" required>
+            </label>
+            <label class="span-2">MPC root
+              <input name="mpcRoot" value="/Volumes/Data/MPC_Converter/Cla_hwz4BAFN_x" spellcheck="false">
+            </label>
+            <label class="span-2">Template XTD
+              <input name="templateXtd" spellcheck="false" placeholder="Optional specific .xtd template">
+            </label>
+          </div>
+          <div class="toggles">
+            <label><input name="normalizeAudio" type="checkbox" checked> Normalize audio</label>
+            <label><input name="dryRun" type="checkbox"> Dry run</label>
+            <label><input name="flatOutput" type="checkbox"> Flat output</label>
+          </div>
+        </section>
+      </form>
+
+      <aside class="run-column">
+        <section class="panel guide-panel">
+          <div class="panel-head">
+            <span class="step">HELP</span>
+            <div>
+              <h2>Quick Guide</h2>
+              <p>Use this checklist before running a batch.</p>
+            </div>
+          </div>
+          <div class="instruction-list">
+            <article>
+              <strong>1. Pick source folders</strong>
+              <span><b>NI roots</b> are exact Maschine expansion folders. <b>NI parents</b> scan direct child folders for expansions. <b>Sample roots</b> are WAV pack folders. <b>Sample parents</b> scan direct child folders that contain WAV files.</span>
+            </article>
+            <article>
+              <strong>2. Choose the kit recipe</strong>
+              <span><b>Per folder</b> creates one kit per immediate sample-pack folder. <b>Single mixed kit</b> combines categories into one kit. <b>Darkchild</b> and <b>Custom</b> anchor roles to selected pads before filling the rest.</span>
+            </article>
+            <article>
+              <strong>3. Set output and template</strong>
+              <span><b>Output root</b> is where new `.xtd` kits are written. <b>MPC root</b> points to your MPC library so the app can find a template `.xtd`. Existing kits are skipped, not overwritten.</span>
+            </article>
+            <article>
+              <strong>4. Local desktop builds</strong>
+              <span>Push this repo to GitHub. The <b>Build Desktop Apps</b> action creates macOS and Windows local launchers that start the web app and open it in the browser.</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel run-panel">
+          <div class="panel-head">
+            <span class="step">RUN</span>
+            <div>
+              <h2>Batch Overview</h2>
+              <p>Review the queue before writing kits.</p>
+            </div>
+          </div>
+
+          <div class="queue-summary">
+            <div><strong id="queue-count">0</strong><span>source lines</span></div>
+            <div><strong id="mode-label">Per folder</strong><span>grouping</span></div>
+            <div><strong id="profile-label">Default</strong><span>pad profile</span></div>
+          </div>
+
+          <div class="queue-list" id="queue-list">
+            <p>No sources queued.</p>
+          </div>
+
+          <button id="run-button" type="submit" form="convert-form">Run Batch</button>
+          <div id="inline-status" class="inline-status">Ready</div>
+        </section>
+
+        <section class="panel result-panel" id="result-panel" hidden>
+          <div class="panel-head">
+            <span class="step">LOG</span>
+            <div>
+              <h2 id="result-title">Result</h2>
+              <p id="result-message">Waiting for a run.</p>
+            </div>
+          </div>
+
+          <div class="metrics" id="metrics"></div>
+          <div class="source-results" id="source-results"></div>
+          <pre id="result-json"></pre>
+        </section>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>

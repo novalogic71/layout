@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ni-mpc-converter"
+version = "0.1.0"
+description = "Convert NI Maschine .mxgrp kits to MPC-style .xtd kits."
+requires-python = ">=3.9"
+
+[project.scripts]
+ni-mpc-convert = "ni_mpc_converter.app.cli:main"
+ni-mpc-convert-web = "ni_mpc_converter.app.web:main"
+ni-mpc-convert-desktop = "ni_mpc_converter.app.desktop:main"
